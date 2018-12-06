@@ -26,7 +26,9 @@
 $ docker-compose up --build
 ```
 
-## Check collector logs
+## Usage
+
+### Check collector logs
 
 ```bash
 collector_1_3856a8a926a6 | time="2018-12-06T14:29:01Z" level=info msg="Fetching price" exchange=bitflyer pair=BTC_JPY
@@ -41,7 +43,7 @@ collector_1_3856a8a926a6 | time="2018-12-06T14:29:02Z" level=info msg="Commiting
 collector_1_3856a8a926a6 | time="2018-12-06T14:29:02Z" level=info msg="Commiting result" error="<nil>" exchange=zaif pair=btc_jpy price=415190 timestamp="2018-12-06 14:29:02.0638324 +0000 UTC m=+660.183024401"
 ```
 
-## Check recent prices
+### Check recent prices
 
 http://localhost:8080
 
@@ -49,7 +51,7 @@ http://localhost:8080
 {"message":[{"id":"5c089246a4e653b37bcf5a85","exchange":"zaif","pair":"btc_jpy","price":419280,"datetime":"2018-12-06T12:06:46.741+09:00"},{"id":"5c08925da4e653b37bcf5a9a","exchange":"bitflyer","pair":"btc_jpy","price":419042,"datetime":"2018-12-06T12:07:12+09:00"},{"id":"5c08925da4e653b37bcf5a9c","exchange":"zaif","pair":"btc_jpy","price":419265,"datetime":"2018-12-06T12:07:09.526+09:00"},{"id":"5c08926ba4e653b37bcf5aa6","exchange":"zaif","pair":"btc_jpy","price":419000,"datetime":"2018-12-06T12:07:23.276+09:00"},{"id":"5c089287a4e653b37bcf5ab5","exchange":"bitflyer","pair":"btc_jpy","price":419163,"datetime":"2018-12-06T12:07:55+09:00"}]}
 ```
 
-## Check diff between exchanges and alerts
+### Check diff between exchanges and alerts
 
 http://localhost:8080/alerts
 
@@ -57,7 +59,7 @@ http://localhost:8080/alerts
 {"message":[{"pair":"eth_jpy","min":10970,"max":11170,"price_between_max_min":200,"datetime":"2018-12-06T22:39:50.268+09:00","alert":true},{"pair":"eth_btc","min":0.02635,"max":0.0265,"price_between_max_min":0.00015000000000000083,"datetime":"2018-12-06T22:39:50.268+09:00","alert":false},{"pair":"btc_jpy","min":407001,"max":410558,"price_between_max_min":3557,"datetime":"2018-12-06T22:39:50.268+09:00","alert":true}]}
 ```
 
-## Set threshold
+### Set threshold
 
 http://localhost:8080/alerts?threshold=1000
 
@@ -65,7 +67,7 @@ http://localhost:8080/alerts?threshold=1000
 {"message":[{"pair":"eth_jpy","min":10970,"max":11170,"price_between_max_min":200,"datetime":"2018-12-06T22:40:47.612+09:00","alert":false},{"pair":"eth_btc","min":0.02635,"max":0.0265,"price_between_max_min":0.00015000000000000083,"datetime":"2018-12-06T22:40:47.612+09:00","alert":false},{"pair":"btc_jpy","min":407001,"max":410558,"price_between_max_min":3557,"datetime":"2018-12-06T22:40:47.612+09:00","alert":true}]}
 ```
 
-## Set threshold and period
+### Set threshold and period
 
 http://localhost:8080/alerts?threshold=1000&period=1h
 
