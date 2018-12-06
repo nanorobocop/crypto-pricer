@@ -1,0 +1,8 @@
+FROM golang:1.11
+WORKDIR /usr/src/app
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o server.bin server/server.go
+
+FROM alpine:latest
+COPY --from=0 /usr/src/app/server.bin /go/bin/server
+ENTRYPOINT [ "/go/bin/server" ]

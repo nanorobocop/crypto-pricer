@@ -1,0 +1,34 @@
+---
+version: '2.1'
+services:
+
+  mongo:
+    build: mongo
+    restart: always
+    # ports:
+    #   - "27017:27017"
+    # environment:
+    #   - MONGO_INITDB_ROOT_USERNAME=root
+    #   - MONGO_INITDB_ROOT_PASSWORD=admin123
+
+  collector:
+    build: 
+      context: .
+      dockerfile: Dockerfile.collector
+    restart: always
+    environment:
+      - MONGO=mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  server:
+    build: 
+      context: .
+      dockerfile: Dockerfile.server
+    restart: always
+    environment:
+      - MONGO=mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy

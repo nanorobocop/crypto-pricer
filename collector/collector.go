@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,70 +13,114 @@ import (
 
 // Env contains environment variables
 type Env struct {
-	sess *mgo.Session
+	sess     *mgo.Session
+	resultCh chan *ticker.Result
 }
 
 var env = &Env{}
 
 func (env *Env) initialize() (err error) {
 
+	// logger
 	log.SetLevel(log.InfoLevel)
-
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors: true,
 		FullTimestamp: true,
 	})
 
-	env.sess, err = mgo.Dial("localhost")
+	// db
+	env.sess, err = mgo.Dial(os.Getenv("MONGO"))
 	if err != nil {
-		log.Error("Cannot initiate session with DB")
+		log.Fatalf("Cannot initiate session with DB: %+v", err)
 	}
-
 	env.sess.SetMode(mgo.Monotonic, true)
+
+	// results
+	env.resultCh = make(chan *ticker.Result)
 
 	return nil
 }
 
-func main() {
-	env.initialize()
-	defer env.sess.Close()
-
-	frequency, err := time.ParseDuration("5m")
-	if err != nil {
-		log.Fatal(err)
+func (env *Env) handleExchange(exchange ticker.Ticker) {
+	ex := exchange.Get()
+	for _, pair := range ex.Pairs {
+		log.WithFields(log.Fields{"exchange": ex.Exchange, "pair": pair}).Infof("Fetching price")
+		go func(pair string) {
+			exchange.FetchPair(pair, env.resultCh)
+		}(pair)
 	}
 
-	var exchanges []*ticker.Ticker
-	exchanges = append(exchanges, ticker.NewTickerAPI("bitstamp.net", "https://www.bitstamp.net/api/v2/ticker", frequency, []string{"btcusd", "btceur"}))
+}
 
-	coll := env.sess.DB("cryptopricer").C("prices")
+func (env *Env) handleExchanges() {
+	oneMinDuration, _ := time.ParseDuration("1m")
 
-	var wg sync.WaitGroup
+	var exchanges []ticker.Ticker
+	exchanges = append(exchanges, &ticker.Bitflyer{
+		E: ticker.Exchange{
+			Exchange:    "bitflyer",
+			Endpoint:    "https://api.bitflyer.com/v1/ticker?product_code=",
+			Frequency:   oneMinDuration,
+			FrequencyCh: *time.NewTicker(oneMinDuration),
+			Pairs:       []string{"BTC_JPY", "ETH_BTC"},
+		},
+	})
+	exchanges = append(exchanges, &ticker.Zaif{
+		E: ticker.Exchange{
+			Exchange:    "zaif",
+			Endpoint:    "https://api.zaif.jp/api/1/ticker/",
+			Frequency:   oneMinDuration,
+			FrequencyCh: *time.NewTicker(oneMinDuration),
+			Pairs:       []string{"btc_jpy", "eth_jpy", "eth_btc"},
+		},
+	})
+
+	// fetch each pair for each exchange
 	for _, exchange := range exchanges {
-		wg.Add(1)
-		log.WithFields(log.Fields{"exchange": exchange.Exchange}).Infof("Requesting info from exchange: %+v", exchange)
-		go func(exchange *ticker.Ticker) {
-			defer wg.Done()
-			exchange.GetAllPairs()
+		go func(exchange ticker.Ticker) {
+			for {
+				select {
+				case <-exchange.Get().FrequencyCh.C:
+					go env.handleExchange(exchange)
+				}
+			}
 		}(exchange)
 	}
-	wg.Wait()
+}
 
-	for _, exchange := range exchanges {
-		for pairName, pairInfo := range exchange.Pairs {
-			log.WithFields(log.Fields{"exchange": exchange.Exchange, "pair": pairName, "price": pairInfo.Price, "timestamp": pairInfo.Timestamp}).Info("Saving data")
+func (env *Env) commitResults() {
+	coll := env.sess.DB("cryptopricer").C("prices")
+
+	for {
+		select {
+		case result := <-env.resultCh:
+			log.WithFields(log.Fields{"exchange": result.Exchange.Exchange, "pair": result.PairInfo.Pair, "price": result.PairInfo.Price, "timestamp": result.PairInfo.Timestamp, "error": result.Error}).Info("Commiting result")
+			if result.Error != nil {
+				continue
+			}
 			dbEntry := struct {
 				Datetime time.Time
 				Pair     string
 				Price    float64
 				Exchange string
 			}{
-				Datetime: pairInfo.Timestamp,
-				Pair:     pairName,
-				Price:    pairInfo.Price,
-				Exchange: exchange.Exchange,
+				Datetime: result.PairInfo.Timestamp,
+				Pair:     strings.ToLower(result.PairInfo.Pair),
+				Price:    result.PairInfo.Price,
+				Exchange: result.Exchange.Exchange,
 			}
 			coll.Insert(&dbEntry)
 		}
 	}
+}
+
+func main() {
+	env.initialize()
+	defer env.sess.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go env.commitResults()
+	env.handleExchanges()
+	wg.Wait()
 }
