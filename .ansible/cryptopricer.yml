@@ -1,0 +1,39 @@
+---
+- hosts: server
+  tasks:
+  - name: Docker login to registry.mansur.moscow
+    docker_login:
+      registry: registry.mansur.moscow
+      username: "{{ registry_username }}"
+      password: "{{ registry_password }}"
+
+  - name: Run cryptopricer
+    docker_service:
+      project_name: cryptopricer
+      pull: true
+      definition:
+        version: '2.1'
+        services:
+          mongo:
+            image: registry.mansur.moscow/mongo
+            restart: always
+
+          collector:
+            image: registry.mansur.moscow/cryptopricer-collector
+            restart: always
+            environment:
+              - MONGO=mongo:27017
+            depends_on:
+              mongo:
+                condition: service_healthy
+
+          server:
+            image: registry.mansur.moscow/cryptopricer-server
+            restart: always
+            ports:
+              - 8089:8080
+            environment:
+              - MONGO=mongo:27017
+            depends_on:
+              mongo:
+                condition: service_healthy
