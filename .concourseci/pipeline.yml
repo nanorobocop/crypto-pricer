@@ -1,0 +1,122 @@
+---
+resources:
+- name: repo
+  type: git
+  source:
+    uri: https://github.com/nanorobocop/crypto-pricer.git
+    branch: master
+
+- name: docker-image-collector
+  type: docker-image
+  source:
+    repository: registry.mansur.moscow/cryptopricer-collector
+    username: {{registry_username}}
+    password: {{registry_password}}
+
+- name: docker-image-server
+  type: docker-image
+  source:
+    repository: registry.mansur.moscow/cryptopricer-server
+    username: {{registry_username}}
+    password: {{registry_password}}
+
+- name: docker-image-mongo
+  type: docker-image
+  source:
+    repository: registry.mansur.moscow/mongo
+    username: {{registry_username}}
+    password: {{registry_password}}
+
+jobs:
+- name: job-test
+  plan:
+  - get: repo
+    trigger: true
+  - task: task-test
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: 1.11-alpine
+      inputs:
+      - name: repo
+        path: .
+      params:
+        CGO_ENABLED: "0"
+      run:
+        path: sh
+        args:
+          - -exc
+          - |
+            export GO111MODULE=on
+            apk add git
+            go get
+            go test -v server/server.go
+            go test -v collector/collector.go
+- name: job-vet
+  plan:
+  - get: repo
+    trigger: true
+  - task: task-vet
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: 1.11-alpine
+      inputs:
+      - name: repo
+        path: .
+      params:
+        CGO_ENABLED: "0"
+      run:
+        path: sh
+        args:
+          - -exc
+          - |
+            export GO111MODULE=on
+            apk add git
+            go get
+            go vet -v server/server.go
+            go vet -v collector/collector.go
+- name: job-build-collector
+  serial: true
+  plan:
+  - get: repo
+    passed:
+    - job-vet
+    - job-test
+    trigger: true
+  - put: docker-image-collector
+    params:
+      build: repo/
+      dockerfile: repo/Dockerfile.collector
+
+- name: job-build-server
+  serial: true
+  plan:
+  - get: repo
+    passed:
+    - job-vet
+    - job-test
+    trigger: true
+  - put: docker-image-server
+    params:
+      build: repo/
+      dockerfile: repo/Dockerfile.server
+
+- name: job-build-mongo
+  serial: true
+  plan:
+  - get: repo
+    passed:
+    - job-vet
+    - job-test
+    trigger: true
+  - put: docker-image-mongo
+    params:
+      build: repo/mongo
+      
