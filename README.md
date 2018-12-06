@@ -1,3 +1,5 @@
+DEMO link: https://crypto.mansur.moscow, https://crypto.mansur.moscow/alerts
+
 ## Features
 
 * Collector
@@ -13,6 +15,8 @@
 
 ## Technical Features
 
+* Continuous Integration using ConcourseCI: https://ci.mansur.moscow/teams/main/pipelines/cryptopricer
+* Deployment using Ansible
 * Common interface for exchanges (easy to add new exchanges and currencies)
 * Concurrent requests to exchanges
 * Go modules for dependencies management
