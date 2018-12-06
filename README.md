@@ -18,7 +18,7 @@
 * Go modules for dependencies management
 * Store data in Mongodb
 * Agregation pipelines in Mongodb for fast queries
-* Lightweight [git](https://github.com/gin-gonic/gin) web framework
+* Lightweight [gin](https://github.com/gin-gonic/gin) web framework
 
 ## Run locally
 
