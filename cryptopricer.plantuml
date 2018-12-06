@@ -1,0 +1,33 @@
+@startuml cryptopricer
+
+object Server {
+    + Gin framework
+}
+
+object Database {
+    + MongoDB
+}
+
+object Collector {
+    + Fetch asynchronously
+}
+
+object Exchange1 {
+    + Bitflyer
+}
+
+object Exchange2 {
+    + Zaif
+}
+
+object Exchange3 {
+    + ...
+}
+
+Server <-right-> Database
+Database <-right-> Collector
+Collector <-up-> Exchange1
+Collector <-right-> Exchange2
+Collector <-down-> Exchange3
+
+@enduml

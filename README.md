@@ -1,4 +1,8 @@
-DEMO link: https://crypto.mansur.moscow, https://crypto.mansur.moscow/alerts
+![screenshot](cryptopricer.png "Screenshot")
+
+DEMO link: 
+* https://crypto.mansur.moscow
+* https://crypto.mansur.moscow/alerts
 
 ## Features
 
